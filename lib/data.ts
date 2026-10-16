@@ -116,3 +116,65 @@ export function dueLabel(isoDate: string) {
   const [y, m, d] = isoDate.split("-").map(Number);
   return new Date(y, m - 1, d).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 }
+
+// ---------- Grades (demo data) ----------
+
+export type Score = { title: string; category: string; earned: number; possible: number; date: string };
+
+// Newest first. Every class grade is calculated from these, so numbers always agree.
+export const scores: Record<string, Score[]> = {
+  alg: [
+    { title: "Quiz 5", category: "Quiz", earned: 18, possible: 20, date: "2026-10-13" },
+    { title: "Problem Set 3", category: "Homework", earned: 27, possible: 30, date: "2026-10-09" },
+    { title: "Unit 2 Test", category: "Test", earned: 41, possible: 50, date: "2026-10-02" },
+    { title: "Quiz 4", category: "Quiz", earned: 15, possible: 20, date: "2026-09-25" },
+  ],
+  it: [
+    { title: "Networking Lab", category: "Lab", earned: 47, possible: 50, date: "2026-10-12" },
+    { title: "Hardware Quiz", category: "Quiz", earned: 19, possible: 20, date: "2026-10-08" },
+    { title: "OS Basics Test", category: "Test", earned: 44, possible: 50, date: "2026-10-01" },
+    { title: "Lab 2", category: "Lab", earned: 9, possible: 10, date: "2026-09-24" },
+  ],
+  prog: [
+    { title: "Variables Quiz", category: "Quiz", earned: 18, possible: 20, date: "2026-10-12" },
+    { title: "Functions Project", category: "Project", earned: 88, possible: 100, date: "2026-10-07" },
+    { title: "Debugging Lab", category: "Lab", earned: 17, possible: 20, date: "2026-09-30" },
+    { title: "Intro Assignment", category: "Homework", earned: 10, possible: 10, date: "2026-09-18" },
+  ],
+  gov: [
+    { title: "Chapter 5 Quiz", category: "Quiz", earned: 14, possible: 20, date: "2026-10-13" },
+    { title: "Bill of Rights Test", category: "Test", earned: 36, possible: 50, date: "2026-10-06" },
+    { title: "Chapter 4 Worksheet", category: "Homework", earned: 8, possible: 10, date: "2026-09-29" },
+    { title: "Chapter 3 Quiz", category: "Quiz", earned: 15, possible: 20, date: "2026-09-22" },
+  ],
+  eng: [
+    { title: "Essay 2", category: "Essay", earned: 78, possible: 100, date: "2026-10-12" },
+    { title: "Reading Quiz 4", category: "Quiz", earned: 16, possible: 20, date: "2026-10-05" },
+    { title: "Vocabulary Quiz", category: "Quiz", earned: 17, possible: 20, date: "2026-09-28" },
+    { title: "Essay 1", category: "Essay", earned: 80, possible: 100, date: "2026-09-17" },
+  ],
+  env: [
+    { title: "Ecosystems Test", category: "Test", earned: 37, possible: 50, date: "2026-10-09" },
+    { title: "Lab Report 2", category: "Lab", earned: 21, possible: 30, date: "2026-10-02" },
+    { title: "Chapter 4 Quiz", category: "Quiz", earned: 15, possible: 20, date: "2026-09-26" },
+    { title: "Climate Worksheet", category: "Homework", earned: 9, possible: 10, date: "2026-09-19" },
+  ],
+};
+
+// Calculates each class grade from its scores (total earned divided by total possible).
+for (const c of classes) {
+  const list = scores[c.id];
+  if (list && list.length > 0) {
+    const earned = list.reduce((sum, s) => sum + s.earned, 0);
+    const possible = list.reduce((sum, s) => sum + s.possible, 0);
+    c.grade = (earned / possible) * 100;
+  }
+}
+
+// Picks colors for a grade: green for A, blue for B, yellow for C, red below that.
+export function gradeTone(p: number) {
+  if (p >= 90) return { bar: "bg-emerald-500", chip: "bg-emerald-100 text-emerald-700" };
+  if (p >= 80) return { bar: "bg-sky-500", chip: "bg-sky-100 text-sky-700" };
+  if (p >= 70) return { bar: "bg-amber-500", chip: "bg-amber-100 text-amber-700" };
+  return { bar: "bg-rose-500", chip: "bg-rose-100 text-rose-700" };
+}
