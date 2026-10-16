@@ -36,7 +36,7 @@ export default function Attendance() {
   const exceptions = Object.entries(marks).sort((a, b) => b[0].localeCompare(a[0]));
 
   const cards = [
-    { label: "Attendance rate", node: <CountUp to={rate} decimals={1} suffix="%" />, color: "from-indigo-500 to-violet-500" },
+    { label: "Attendance rate", node: <CountUp to={rate} decimals={1} suffix="%" />, color: "from-brand-500 to-accent-500" },
     { label: "Days present", node: <CountUp to={attendance.present} />, color: "from-emerald-500 to-teal-500" },
     { label: "Tardies", node: <CountUp to={attendance.tardy} />, color: "from-amber-500 to-orange-500" },
     { label: "Absences", node: <CountUp to={attendance.absent} />, color: "from-rose-500 to-pink-500" },

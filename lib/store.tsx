@@ -91,7 +91,7 @@ export function PortalProvider({ children }: { children: ReactNode }) {
                   toast.undo();
                   closeToast();
                 }}
-                className="font-semibold text-indigo-300 hover:text-indigo-200"
+                className="font-semibold text-brand-300 hover:text-brand-200"
               >
                 Undo
               </button>

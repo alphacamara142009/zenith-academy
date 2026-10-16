@@ -73,9 +73,9 @@ export default function Schedule() {
             {days.map((day) => {
               const isToday = day.key === todayKey;
               return (
-                <div key={day.key} className={`px-2 py-3 text-center ${isToday ? "bg-indigo-50/60" : ""}`}>
+                <div key={day.key} className={`px-2 py-3 text-center ${isToday ? "bg-brand-50/60" : ""}`}>
                   <p className="text-xs font-semibold uppercase text-slate-400">{day.name}</p>
-                  <p className={`text-lg font-bold ${isToday ? "text-indigo-600" : ""}`}>{day.d.getDate()}</p>
+                  <p className={`text-lg font-bold ${isToday ? "text-brand-600" : ""}`}>{day.d.getDate()}</p>
                   {day.evs.map((e) => (
                     <p
                       key={e.title}
@@ -107,7 +107,7 @@ export default function Schedule() {
             {days.map((day, di) => {
               const isToday = day.key === todayKey;
               return (
-                <div key={day.key} className={`relative border-l border-slate-100 ${isToday ? "bg-indigo-50/40" : ""}`}>
+                <div key={day.key} className={`relative border-l border-slate-100 ${isToday ? "bg-brand-50/40" : ""}`}>
                   {HOURS.map((h) => (
                     <div
                       key={h}

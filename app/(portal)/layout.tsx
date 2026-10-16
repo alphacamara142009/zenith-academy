@@ -54,7 +54,7 @@ function Shell({ children }: { children: ReactNode }) {
   const initials = who.split(" ").map((w) => w[0]).join("");
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="min-h-screen app-bg text-slate-900">
       {open && <div className="fixed inset-0 z-30 bg-black/30 md:hidden" onClick={() => setOpen(false)} />}
 
       <aside
@@ -63,7 +63,7 @@ function Shell({ children }: { children: ReactNode }) {
         }`}
       >
         <div className="flex items-center gap-3 px-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-xl font-bold text-white">Z</div>
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-600 text-xl font-bold text-white">Z</div>
           <div>
             <p className="font-bold leading-tight">Zenith Academy</p>
             <p className="text-[11px] uppercase tracking-wider text-slate-400">{role} portal</p>
@@ -79,13 +79,13 @@ function Shell({ children }: { children: ReactNode }) {
                 href={n.href}
                 onClick={() => setOpen(false)}
                 className={`relative flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors ${
-                  active ? "text-indigo-700" : "text-slate-600 hover:bg-slate-100"
+                  active ? "text-brand-700" : "text-slate-600 hover:bg-slate-100"
                 }`}
               >
                 {active && (
                   <motion.span
                     layoutId="nav-pill"
-                    className="absolute inset-0 rounded-xl bg-indigo-50"
+                    className="absolute inset-0 rounded-xl bg-brand-50"
                     transition={{ type: "spring", stiffness: 400, damping: 32 }}
                   />
                 )}
@@ -113,7 +113,7 @@ function Shell({ children }: { children: ReactNode }) {
             ☰
           </button>
           <div className="ml-auto flex items-center gap-3">
-            <span className="rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-700">{role}</span>
+            <span className="rounded-full bg-brand-100 px-3 py-1 text-xs font-semibold text-brand-700">{role}</span>
             <Link href="/notifications" className="relative rounded-full p-2 hover:bg-slate-100" aria-label="Notifications">
               🔔
               {unread > 0 && (
@@ -128,7 +128,7 @@ function Shell({ children }: { children: ReactNode }) {
               )}
             </Link>
             <div className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-600 text-sm font-bold text-white">{initials}</div>
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-600 text-sm font-bold text-white">{initials}</div>
               <span className="hidden text-sm font-medium sm:block">{who}</span>
             </div>
           </div>

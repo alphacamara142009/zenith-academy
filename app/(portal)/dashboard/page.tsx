@@ -8,7 +8,7 @@ import { usePortal } from "@/lib/store";
 import { TODAY, assignments, attendance, classes, daysUntil, dueLabel, events, fmtTime, iso, letter, quarters, student } from "@/lib/data";
 
 const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri"];
-const linkClass = "block rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
+const linkClass = "block rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2";
 
 export default function Dashboard() {
   const { unread } = usePortal();
@@ -29,7 +29,7 @@ export default function Dashboard() {
   const todayKey = iso(TODAY);
 
   const stats = [
-    { label: "Overall grade", href: "/grades", node: <CountUp to={overall} decimals={1} suffix="%" />, note: `Quarter 1 · ${letter(overall)}`, color: "from-indigo-500 to-violet-500" },
+    { label: "Overall grade", href: "/grades", node: <CountUp to={overall} decimals={1} suffix="%" />, note: `Quarter 1 · ${letter(overall)}`, color: "from-brand-500 to-accent-500" },
     { label: "Attendance", href: "/attendance", node: <CountUp to={attPct} decimals={1} suffix="%" />, note: `${attendance.absent} absence, ${attendance.tardy} tardies`, color: "from-emerald-500 to-teal-500" },
     { label: "My classes", href: "/classes", node: <CountUp to={classes.length - 1} />, note: "Enrolled this quarter", color: "from-sky-500 to-cyan-500" },
     { label: "Unread", href: "/notifications", node: <CountUp to={unread} />, note: "New notifications", color: "from-amber-500 to-orange-500" },
@@ -61,7 +61,7 @@ export default function Dashboard() {
                 <div key={q.name} style={{ flexGrow: q.days }} className="basis-0">
                   <div className="relative h-3 overflow-hidden rounded-full bg-slate-100">
                     <motion.div
-                      className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-indigo-500 to-violet-500"
+                      className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-brand-500 to-accent-500"
                       initial={{ width: 0 }}
                       animate={{ width: `${q.done}%` }}
                       transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
@@ -137,7 +137,7 @@ export default function Dashboard() {
               <Link href="/calendar" className={linkClass}>
                 <div
                   className={`rounded-2xl border p-3 transition-shadow hover:shadow-md ${
-                    isToday ? "border-indigo-400 bg-indigo-50/60 ring-2 ring-indigo-200" : "border-slate-200 bg-white"
+                    isToday ? "border-brand-400 bg-brand-50/60 ring-2 ring-brand-200" : "border-slate-200 bg-white"
                   }`}
                 >
                   <p className="text-xs font-semibold text-slate-500">

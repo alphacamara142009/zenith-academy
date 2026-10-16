@@ -87,12 +87,12 @@ export default function CalendarPage() {
               const isSel = key === selected;
               const off = evs.some((e) => e.kind === "off");
               const look = isSel
-                ? "border-indigo-400 bg-indigo-50/60 ring-2 ring-indigo-200"
+                ? "border-brand-400 bg-brand-50/60 ring-2 ring-brand-200"
                 : weekend
                   ? "border-transparent bg-slate-50 text-slate-400 hover:bg-slate-100"
                   : off
                     ? "border-amber-100 bg-amber-50/50 hover:shadow-sm"
-                    : "border-slate-100 bg-white hover:border-indigo-200 hover:shadow-sm";
+                    : "border-slate-100 bg-white hover:border-brand-200 hover:shadow-sm";
               return (
                 <button
                   key={key}
@@ -101,7 +101,7 @@ export default function CalendarPage() {
                 >
                   <span
                     className={`text-xs font-semibold ${
-                      isToday ? "flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-white" : "text-slate-600"
+                      isToday ? "flex h-5 w-5 items-center justify-center rounded-full bg-brand-600 text-white" : "text-slate-600"
                     }`}
                   >
                     {c.getDate()}
@@ -131,7 +131,7 @@ export default function CalendarPage() {
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">This month</p>
             <div className="mt-3 flex gap-8">
               <div>
-                <p className="text-3xl font-bold text-indigo-600">{schoolDays}</p>
+                <p className="text-3xl font-bold text-brand-600">{schoolDays}</p>
                 <p className="text-xs text-slate-500">School days</p>
               </div>
               <div>
