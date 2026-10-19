@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import { PortalProvider, usePortal } from "@/lib/store";
 import { SchoolProvider, useSchool, type FeatureKey } from "@/lib/school";
+import { DemoProvider, useDemo } from "@/lib/demo";
 import { student } from "@/lib/data";
 
 type NavItem = { href: string; label: string; icon: string; feature: FeatureKey | null };
@@ -18,22 +19,26 @@ const studentNav: NavItem[] = [
   { href: "/classes", label: "Classes", icon: "📚", feature: "classes" },
   { href: "/attendance", label: "Attendance", icon: "✅", feature: "attendance" },
   { href: "/grades", label: "Grades", icon: "📊", feature: "grades" },
+  { href: "/hallpass", label: "Hall Pass", icon: "🚪", feature: "hallpass" },
 ];
 
-const teacherNav: NavItem[] = [studentNav[0]];
-const adminNav: NavItem[] = [{ href: "/admin", label: "Control Center", icon: "🛠️", feature: null }];
+const teacherNav: NavItem[] = [
+  { href: "/teacher", label: "Dashboard", icon: "🏠", feature: null },
+  { href: "/teacher/attendance", label: "Attendance", icon: "✅", feature: null },
+];
 
+const adminNav: NavItem[] = [
+  { href: "/admin/overview", label: "Overview", icon: "📈", feature: null },
+  { href: "/admin/users", label: "Users", icon: "👥", feature: null },
+  { href: "/admin", label: "Settings", icon: "⚙️", feature: null },
+];
+
+const HOME: Record<string, string> = { Student: "/dashboard", Teacher: "/teacher", Admin: "/admin/overview" };
 const ROLES = ["Student", "Teacher", "Admin"];
 const ROLE_KEY = "zenith-role";
 
-function Placeholder({ icon, title, text }: { icon: string; title: string; text: string }) {
-  return (
-    <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center">
-      <p className="text-4xl">{icon}</p>
-      <h2 className="mt-3 text-xl font-semibold">{title}</h2>
-      <p className="mt-1 text-slate-500">{text}</p>
-    </div>
-  );
+function areaOf(path: string) {
+  return path.startsWith("/admin") ? "Admin" : path.startsWith("/teacher") ? "Teacher" : "Student";
 }
 
 function FeatureOff({ name }: { name: string }) {
@@ -54,9 +59,12 @@ function Shell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const { unread } = usePortal();
   const { school } = useSchool();
+  const { passes, announcements } = useDemo();
   const [role, setRole] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [seen, setSeen] = useState<number[]>([]);
   const path = pathname ?? "";
+  const area = areaOf(path);
 
   useEffect(() => {
     const r = sessionStorage.getItem(ROLE_KEY);
@@ -67,10 +75,10 @@ function Shell({ children }: { children: ReactNode }) {
     setRole(r);
   }, [router]);
 
-  // Admins only have the Control Center for now.
+  // Keep each role inside its own area.
   useEffect(() => {
-    if (role === "Admin" && !path.startsWith("/admin")) router.replace("/admin");
-  }, [role, path, router]);
+    if (role && area !== role) router.replace(HOME[role] ?? "/dashboard");
+  }, [role, area, router]);
 
   function signOut() {
     sessionStorage.removeItem(ROLE_KEY);
@@ -81,40 +89,28 @@ function Shell({ children }: { children: ReactNode }) {
   function switchRole(r: string) {
     sessionStorage.setItem(ROLE_KEY, r);
     setRole(r);
-    router.push(r === "Admin" ? "/admin" : "/dashboard");
+    router.push(HOME[r]);
   }
 
   if (!role) return <div className="min-h-screen bg-slate-50" />;
 
-  const who = role === "Student" ? student.name : role === "Teacher" ? "Demo Teacher" : "Demo Admin";
+  const who = role === "Student" ? student.name : role === "Teacher" ? "Mr. Okafor" : "Demo Admin";
   const initials = who.split(" ").map((w) => w[0]).join("");
 
   const items =
-    role === "Admin"
-      ? adminNav
+    role === "Student"
+      ? studentNav.filter((n) => !n.feature || school.features[n.feature])
       : role === "Teacher"
         ? teacherNav
-        : studentNav.filter((n) => !n.feature || school.features[n.feature]);
+        : adminNav;
 
-  const onAdminPage = path.startsWith("/admin");
-  const feature = studentNav.find((n) => n.href === path)?.feature ?? null;
-  const featureOff = role === "Student" && feature !== null && !school.features[feature];
+  const feature = role === "Student" ? (studentNav.find((n) => n.href === path)?.feature ?? null) : null;
+  const featureOff = feature !== null && !school.features[feature];
   const showBell = role === "Student" && school.features.notifications;
+  const pending = school.features.hallpass ? passes.filter((p) => p.status === "pending").length : 0;
+  const banner = role === "Student" && school.features.announcements ? announcements.find((a) => !seen.includes(a.id)) : undefined;
 
-  let content: ReactNode;
-  if (role === "Student") {
-    content = onAdminPage ? (
-      <Placeholder icon="🔒" title="Admins only" text="Switch to the Admin view to open the Control Center." />
-    ) : featureOff ? (
-      <FeatureOff name={studentNav.find((n) => n.href === path)?.label ?? "This page"} />
-    ) : (
-      children
-    );
-  } else if (role === "Admin") {
-    content = onAdminPage ? children : null;
-  } else {
-    content = <Placeholder icon="🚧" title="The Teacher workspace is coming next" text="We are finishing the other views first." />;
-  }
+  const content = area !== role ? null : featureOff ? <FeatureOff name={studentNav.find((n) => n.href === path)?.label ?? "This page"} /> : children;
 
   return (
     <div className="min-h-screen app-bg text-slate-900">
@@ -138,6 +134,7 @@ function Shell({ children }: { children: ReactNode }) {
         <nav className="mt-8 flex flex-1 flex-col gap-1">
           {items.map((n) => {
             const active = path === n.href;
+            const badge = n.href === "/notifications" ? unread : n.href === "/teacher" ? pending : 0;
             return (
               <Link
                 key={n.href}
@@ -156,8 +153,15 @@ function Shell({ children }: { children: ReactNode }) {
                 )}
                 <span className="relative text-base">{n.icon}</span>
                 <span className="relative">{n.label}</span>
-                {n.href === "/notifications" && unread > 0 && (
-                  <span className="relative ml-auto rounded-full bg-rose-500 px-2 py-0.5 text-xs font-bold text-white">{unread}</span>
+                {badge > 0 && (
+                  <motion.span
+                    key={badge}
+                    initial={{ scale: 0.6 }}
+                    animate={{ scale: 1 }}
+                    className="relative ml-auto rounded-full bg-rose-500 px-2 py-0.5 text-xs font-bold text-white"
+                  >
+                    {badge}
+                  </motion.span>
                 )}
               </Link>
             );
@@ -178,7 +182,7 @@ function Shell({ children }: { children: ReactNode }) {
             ☰
           </button>
           <div className="ml-auto flex items-center gap-3">
-            <div className="hidden items-center gap-1 rounded-full bg-slate-100 p-1 sm:flex" role="group" aria-label="Demo view">
+            <div className="flex items-center gap-1 rounded-full bg-slate-100 p-1" role="group" aria-label="Demo view">
               {ROLES.map((r) => (
                 <button
                   key={r}
@@ -199,7 +203,6 @@ function Shell({ children }: { children: ReactNode }) {
                 </button>
               ))}
             </div>
-            <span className="rounded-full bg-brand-100 px-3 py-1 text-xs font-semibold text-brand-700 sm:hidden">{role}</span>
 
             {showBell && (
               <Link href="/notifications" className="relative rounded-full p-2 hover:bg-slate-100" aria-label="Notifications">
@@ -218,13 +221,41 @@ function Shell({ children }: { children: ReactNode }) {
             )}
             <div className="flex items-center gap-2">
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-600 text-sm font-bold text-white">{initials}</div>
-              <span className="hidden text-sm font-medium sm:block">{who}</span>
+              <span className="hidden text-sm font-medium lg:block">{who}</span>
             </div>
           </div>
         </header>
 
         <main className="p-4 md:p-8">
           <div className="mx-auto max-w-6xl">
+            <AnimatePresence initial={false}>
+              {banner && (
+                <motion.div
+                  key={banner.id}
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                  className="overflow-hidden"
+                >
+                  <div className="mb-5 flex items-start gap-3 rounded-2xl border border-brand-200 bg-brand-50 p-4">
+                    <span className="text-xl">📣</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-brand-800">{banner.title}</p>
+                      {banner.body && <p className="text-sm text-slate-600">{banner.body}</p>}
+                    </div>
+                    <button
+                      onClick={() => setSeen((s) => [...s, banner.id])}
+                      aria-label="Dismiss announcement"
+                      className="rounded-lg px-2 py-1 text-slate-400 hover:bg-white hover:text-slate-700"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             <motion.div key={path} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}>
               {content}
             </motion.div>
@@ -238,9 +269,11 @@ function Shell({ children }: { children: ReactNode }) {
 export default function PortalLayout({ children }: { children: ReactNode }) {
   return (
     <SchoolProvider>
-      <PortalProvider>
-        <Shell>{children}</Shell>
-      </PortalProvider>
+      <DemoProvider>
+        <PortalProvider>
+          <Shell>{children}</Shell>
+        </PortalProvider>
+      </DemoProvider>
     </SchoolProvider>
   );
 }

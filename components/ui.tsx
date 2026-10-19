@@ -1,7 +1,7 @@
 "use client";
 
 import { animate, motion, useMotionValue, useReducedMotion, useTransform } from "motion/react";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, type MouseEvent, type ReactNode } from "react";
 
 export function CountUp({ to, decimals = 0, suffix = "" }: { to: number; decimals?: number; suffix?: string }) {
   const reduce = useReducedMotion();
@@ -35,13 +35,26 @@ export function Reveal({ children, delay = 0, className = "" }: { children: Reac
 }
 
 export function Card({ children, className = "", lift = true }: { children: ReactNode; className?: string; lift?: boolean }) {
+  function track(e: MouseEvent<HTMLDivElement>) {
+    const r = e.currentTarget.getBoundingClientRect();
+    e.currentTarget.style.setProperty("--mx", `${e.clientX - r.left}px`);
+    e.currentTarget.style.setProperty("--my", `${e.clientY - r.top}px`);
+  }
   return (
     <motion.div
+      onMouseMove={track}
       whileHover={lift ? { y: -3 } : undefined}
       transition={{ type: "spring", stiffness: 400, damping: 28 }}
-      className={`rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm transition-[box-shadow,border-color] duration-200 hover:border-brand-200 hover:shadow-md hover:shadow-brand-500/10 ${className}`}
+      className={`group/card relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm transition-[box-shadow,border-color] duration-200 hover:border-brand-200 hover:shadow-md hover:shadow-brand-500/10 ${className}`}
     >
-      {children}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover/card:opacity-100"
+        style={{
+          background: "radial-gradient(360px circle at var(--mx, 50%) var(--my, 50%), color-mix(in srgb, var(--brand-500) 8%, transparent), transparent 70%)",
+        }}
+      />
+      <div className="relative">{children}</div>
     </motion.div>
   );
 }
@@ -58,7 +71,6 @@ export function PageHeader({ title, subtitle, right }: { title: string; subtitle
   );
 }
 
-// Picks a ring color for a grade (green A, blue B, yellow C, red below).
 export function ringColor(p: number) {
   if (p >= 90) return "text-emerald-500";
   if (p >= 80) return "text-sky-500";
@@ -66,7 +78,6 @@ export function ringColor(p: number) {
   return "text-rose-500";
 }
 
-// A circle that fills up to a percentage. Put anything you like inside it.
 export function ProgressRing({
   value,
   size = 72,
@@ -103,13 +114,32 @@ export function ProgressRing({
           className={colorClass}
           initial={reduce ? false : { pathLength: 0, opacity: 0 }}
           animate={{ pathLength: pct, opacity: 1 }}
-          transition={{
-            pathLength: { duration: 0.9, delay, ease: [0.22, 1, 0.36, 1] },
-            opacity: { duration: 0.2, delay },
-          }}
+          transition={{ pathLength: { duration: 0.9, delay, ease: [0.22, 1, 0.36, 1] }, opacity: { duration: 0.2, delay } }}
         />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">{children}</div>
+    </div>
+  );
+}
+
+const AVATARS = [
+  "from-sky-400 to-blue-500",
+  "from-emerald-400 to-teal-500",
+  "from-amber-400 to-orange-500",
+  "from-rose-400 to-pink-500",
+  "from-violet-400 to-purple-500",
+  "from-cyan-400 to-sky-500",
+];
+
+export function Avatar({ name, size = 36 }: { name: string; size?: number }) {
+  const hash = [...name].reduce((s, c) => s + c.charCodeAt(0), 0);
+  const initials = name.split(" ").map((w) => w[0]).join("").slice(0, 2);
+  return (
+    <div
+      className={`flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br font-bold text-white ${AVATARS[hash % AVATARS.length]}`}
+      style={{ width: size, height: size, fontSize: size * 0.38 }}
+    >
+      {initials}
     </div>
   );
 }
