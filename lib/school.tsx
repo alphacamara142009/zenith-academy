@@ -2,31 +2,33 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
-// ---------- What a school can switch on and off ----------
-
-export type FeatureKey = "notifications" | "calendar" | "schedule" | "classes" | "attendance" | "grades";
-
-export const FEATURES: { key: FeatureKey; label: string; desc: string; icon: string }[] = [
+// To add a feature to the whole platform, add one line here.
+export const FEATURES = [
   { key: "notifications", label: "Notifications", desc: "Alerts for assignments, grades, and attendance", icon: "🔔" },
   { key: "calendar", label: "Calendar", desc: "School events and no-school days", icon: "📅" },
   { key: "schedule", label: "Schedule", desc: "Weekly class timetable", icon: "🕒" },
   { key: "classes", label: "Classes", desc: "Class cards with teachers and next due work", icon: "📚" },
   { key: "attendance", label: "Attendance", desc: "Present, tardy, and absent history", icon: "✅" },
   { key: "grades", label: "Grades", desc: "Grades with a what-if calculator", icon: "📊" },
-];
+  { key: "hallpass", label: "Hall passes", desc: "Students request passes, teachers approve with live timers", icon: "🚪" },
+  { key: "announcements", label: "Announcements", desc: "School-wide messages shown to students and parents", icon: "📣" },
+  { key: "checkin", label: "QR check-in", desc: "Late students scan the front-desk code to mark themselves in", icon: "📱" },
+  { key: "parents", label: "Parent portal", desc: "Parents see grades, attendance, and can report absences", icon: "👪" },
+] as const;
 
-// Planned features. They show up in the Control Center as a roadmap.
+export type FeatureKey = (typeof FEATURES)[number]["key"];
+
 export const COMING_SOON = [
-  { label: "Hall passes", icon: "🚪" },
-  { label: "QR check-in", icon: "📱" },
-  { label: "Parent portal", icon: "👪" },
   { label: "Messaging", icon: "💬" },
-  { label: "Announcements", icon: "📣" },
-  { label: "Teacher gradebook", icon: "📒" },
   { label: "Lunch menu", icon: "🍎" },
   { label: "Clubs and events", icon: "🎭" },
   { label: "Emergency alerts", icon: "🚨" },
   { label: "Permission slips", icon: "✍️" },
+  { label: "Bus tracking", icon: "🚌" },
+  { label: "Payments", icon: "💳" },
+  { label: "Mobile apps", icon: "📲" },
+  { label: "Advanced reports", icon: "📈" },
+  { label: "Lesson plans", icon: "🗂️" },
 ];
 
 export const PRESETS = [
@@ -49,16 +51,11 @@ export type Settings = {
   features: Record<FeatureKey, boolean>;
 };
 
-const DEFAULTS: Settings = {
-  name: "Zenith Academy",
-  mark: "Z",
-  brand: DEFAULT_BRAND,
-  features: { notifications: true, calendar: true, schedule: true, classes: true, attendance: true, grades: true },
-};
+const ALL_ON = Object.fromEntries(FEATURES.map((f) => [f.key, true])) as Record<FeatureKey, boolean>;
+
+const DEFAULTS: Settings = { name: "Zenith Academy", mark: "Z", brand: DEFAULT_BRAND, features: ALL_ON };
 
 const KEY = "school-settings";
-
-// ---------- Turning one color into a full set of shades ----------
 
 type RGB = [number, number, number];
 const WHITE: RGB = [255, 255, 255];
@@ -73,12 +70,7 @@ function hexToRgb(hex: string): RGB {
 }
 
 function rgbToHex(r: number, g: number, b: number) {
-  return (
-    "#" +
-    [r, g, b]
-      .map((v) => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, "0"))
-      .join("")
-  );
+  return "#" + [r, g, b].map((v) => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, "0")).join("");
 }
 
 function mix(hex: string, other: RGB, t: number) {
@@ -86,7 +78,6 @@ function mix(hex: string, other: RGB, t: number) {
   return rgbToHex(r + (other[0] - r) * t, g + (other[1] - g) * t, b + (other[2] - b) * t);
 }
 
-// Shifts a color around the color wheel. Used to build the second "accent" color.
 function rotateHue(hex: string, deg: number) {
   const [r0, g0, b0] = hexToRgb(hex).map((v) => v / 255);
   const max = Math.max(r0, g0, b0);
@@ -131,7 +122,6 @@ function scale(hex: string): Record<string, string> {
   };
 }
 
-// Writes the school's colors onto the page. Passing null puts the original colors back.
 function applyBrand(hex: string | null) {
   const root = document.documentElement;
   if (!hex) {
@@ -149,8 +139,6 @@ function applyBrand(hex: string | null) {
   }
 }
 
-// ---------- The provider ----------
-
 type SchoolCtx = {
   school: Settings;
   update: (patch: Partial<Omit<Settings, "features">>) => void;
@@ -163,19 +151,17 @@ const Ctx = createContext<SchoolCtx | null>(null);
 export function SchoolProvider({ children }: { children: ReactNode }) {
   const [school, setSchool] = useState<Settings>(DEFAULTS);
 
-  // Load saved settings once when the page opens.
   useEffect(() => {
     try {
       const raw = localStorage.getItem(KEY);
       if (!raw) return;
       const saved = JSON.parse(raw) as Partial<Settings>;
-      setSchool({ ...DEFAULTS, ...saved, features: { ...DEFAULTS.features, ...(saved.features ?? {}) } });
+      setSchool({ ...DEFAULTS, ...saved, features: { ...ALL_ON, ...(saved.features ?? {}) } });
     } catch {
       // Saved settings were unreadable, so we keep the defaults.
     }
   }, []);
 
-  // Recolor the whole site whenever the brand color changes.
   useEffect(() => {
     applyBrand(school.brand.toLowerCase() === DEFAULT_BRAND ? null : school.brand);
   }, [school.brand]);

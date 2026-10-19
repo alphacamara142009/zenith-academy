@@ -59,14 +59,40 @@ export function Card({ children, className = "", lift = true }: { children: Reac
   );
 }
 
+const TITLE_ICONS: Record<string, string> = {
+  Notifications: "🔔",
+  Calendar: "📅",
+  Schedule: "🕒",
+  Classes: "📚",
+  Attendance: "✅",
+  Grades: "📊",
+  "Hall Pass": "🚪",
+  Overview: "📈",
+  Users: "👥",
+  "Control Center": "⚙️",
+  Gradebook: "📒",
+  "Report an absence": "📝",
+  "Check-in": "📱",
+  "Check-in Kiosk": "🖥️",
+};
+
 export function PageHeader({ title, subtitle, right }: { title: string; subtitle?: string; right?: ReactNode }) {
+  const icon = TITLE_ICONS[title];
   return (
-    <Reveal className="mb-6 flex flex-wrap items-end justify-between gap-3">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{title}</h1>
-        {subtitle && <p className="mt-1 text-slate-500">{subtitle}</p>}
+    <Reveal className="mb-6">
+      <div className="relative flex flex-wrap items-center justify-between gap-4 overflow-hidden rounded-3xl bg-gradient-to-br from-brand-600 via-brand-500 to-accent-500 px-6 py-5 text-white shadow-lg shadow-brand-500/20 md:px-8 md:py-6">
+        <div className="pointer-events-none absolute -right-8 -top-14 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
+        {icon && (
+          <span aria-hidden className="pointer-events-none absolute -bottom-4 right-6 select-none text-[88px] leading-none opacity-20">
+            {icon}
+          </span>
+        )}
+        <div className="relative">
+          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{title}</h1>
+          {subtitle && <p className="mt-1 text-white/80">{subtitle}</p>}
+        </div>
+        {right && <div className="relative rounded-xl bg-white/90 p-1.5 shadow-sm backdrop-blur">{right}</div>}
       </div>
-      {right}
     </Reveal>
   );
 }

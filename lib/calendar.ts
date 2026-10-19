@@ -23,7 +23,7 @@ function range(from: string, to: string, title: string, kind: Kind): CalendarEve
 }
 
 // Demo calendar. The first events come from data.ts; the rest are examples.
-export const allEvents: CalendarEvent[] = [
+const list: CalendarEvent[] = [
   { date: "2026-09-07", title: "Labor Day - No School", kind: "off" },
   { date: "2026-09-18", title: "Picture Day", kind: "activity" },
   { date: "2026-10-02", title: "Homecoming Spirit Day", kind: "activity" },
@@ -41,7 +41,9 @@ export const allEvents: CalendarEvent[] = [
   ...range("2026-11-25", "2026-11-27", "Thanksgiving Break", "off"),
   ...range("2026-12-15", "2026-12-18", "Semester Exams", "exam"),
   ...range("2026-12-21", "2027-01-01", "Winter Break", "off"),
-].sort((a, b) => a.date.localeCompare(b.date));
+];
+
+export const allEvents: CalendarEvent[] = [...list].sort((a, b) => a.date.localeCompare(b.date));
 
 export function eventsOn(key: string) {
   return allEvents.filter((e) => e.date === key);

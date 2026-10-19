@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { PortalProvider, usePortal } from "@/lib/store";
 import { SchoolProvider, useSchool, type FeatureKey } from "@/lib/school";
 import { DemoProvider, useDemo } from "@/lib/demo";
+import { ExtraProvider } from "@/lib/extra";
 import { student } from "@/lib/data";
 
 type NavItem = { href: string; label: string; icon: string; feature: FeatureKey | null };
@@ -20,36 +21,51 @@ const studentNav: NavItem[] = [
   { href: "/attendance", label: "Attendance", icon: "✅", feature: "attendance" },
   { href: "/grades", label: "Grades", icon: "📊", feature: "grades" },
   { href: "/hallpass", label: "Hall Pass", icon: "🚪", feature: "hallpass" },
+  { href: "/checkin", label: "Check-in", icon: "📱", feature: "checkin" },
+];
+
+const parentNav: NavItem[] = [
+  { href: "/parent", label: "Dashboard", icon: "🏠", feature: "parents" },
+  { href: "/parent/absence", label: "Report absence", icon: "📝", feature: "parents" },
 ];
 
 const teacherNav: NavItem[] = [
   { href: "/teacher", label: "Dashboard", icon: "🏠", feature: null },
   { href: "/teacher/attendance", label: "Attendance", icon: "✅", feature: null },
+  { href: "/teacher/gradebook", label: "Gradebook", icon: "📒", feature: null },
 ];
 
 const adminNav: NavItem[] = [
   { href: "/admin/overview", label: "Overview", icon: "📈", feature: null },
   { href: "/admin/users", label: "Users", icon: "👥", feature: null },
+  { href: "/admin/checkin", label: "Check-in Kiosk", icon: "🖥️", feature: "checkin" },
   { href: "/admin", label: "Settings", icon: "⚙️", feature: null },
 ];
 
-const HOME: Record<string, string> = { Student: "/dashboard", Teacher: "/teacher", Admin: "/admin/overview" };
-const ROLES = ["Student", "Teacher", "Admin"];
+const NAVS: Record<string, NavItem[]> = { Student: studentNav, Parent: parentNav, Teacher: teacherNav, Admin: adminNav };
+const ALL_NAV = [...studentNav, ...parentNav, ...teacherNav, ...adminNav];
+const HOME: Record<string, string> = { Student: "/dashboard", Parent: "/parent", Teacher: "/teacher", Admin: "/admin/overview" };
+const ROLES = ["Student", "Parent", "Teacher", "Admin"];
 const ROLE_KEY = "zenith-role";
 
 function areaOf(path: string) {
-  return path.startsWith("/admin") ? "Admin" : path.startsWith("/teacher") ? "Teacher" : "Student";
+  if (path.startsWith("/admin")) return "Admin";
+  if (path.startsWith("/teacher")) return "Teacher";
+  if (path.startsWith("/parent")) return "Parent";
+  return "Student";
 }
 
-function FeatureOff({ name }: { name: string }) {
+function FeatureOff({ name, home }: { name: string; home?: string }) {
   return (
     <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center">
       <p className="text-4xl">🔒</p>
       <h2 className="mt-3 text-xl font-semibold">{name} is turned off</h2>
       <p className="mt-1 text-slate-500">Your school has switched this feature off.</p>
-      <Link href="/dashboard" className="mt-4 inline-block font-semibold text-brand-600 hover:text-brand-700">
-        Back to dashboard →
-      </Link>
+      {home && (
+        <Link href={home} className="mt-4 inline-block font-semibold text-brand-600 hover:text-brand-700">
+          Back to home →
+        </Link>
+      )}
     </div>
   );
 }
@@ -94,23 +110,21 @@ function Shell({ children }: { children: ReactNode }) {
 
   if (!role) return <div className="min-h-screen bg-slate-50" />;
 
-  const who = role === "Student" ? student.name : role === "Teacher" ? "Mr. Okafor" : "Demo Admin";
+  const who = role === "Student" ? student.name : role === "Parent" ? "Dana Rivera" : role === "Teacher" ? "Mr. Okafor" : "Demo Admin";
   const initials = who.split(" ").map((w) => w[0]).join("");
 
-  const items =
-    role === "Student"
-      ? studentNav.filter((n) => !n.feature || school.features[n.feature])
-      : role === "Teacher"
-        ? teacherNav
-        : adminNav;
-
-  const feature = role === "Student" ? (studentNav.find((n) => n.href === path)?.feature ?? null) : null;
-  const featureOff = feature !== null && !school.features[feature];
+  const items = (NAVS[role] ?? studentNav).filter((n) => !n.feature || school.features[n.feature]);
+  const current = ALL_NAV.find((n) => n.href === path);
+  const gated = current?.feature ?? null;
+  const featureOff = gated !== null && !school.features[gated];
   const showBell = role === "Student" && school.features.notifications;
   const pending = school.features.hallpass ? passes.filter((p) => p.status === "pending").length : 0;
-  const banner = role === "Student" && school.features.announcements ? announcements.find((a) => !seen.includes(a.id)) : undefined;
+  const latest = announcements[0];
+  const banner =
+    (role === "Student" || role === "Parent") && school.features.announcements && latest && !seen.includes(latest.id) ? latest : undefined;
 
-  const content = area !== role ? null : featureOff ? <FeatureOff name={studentNav.find((n) => n.href === path)?.label ?? "This page"} /> : children;
+  const content =
+    area !== role ? null : featureOff ? <FeatureOff name={current?.label ?? "This page"} home={role === "Parent" ? undefined : HOME[role]} /> : children;
 
   return (
     <div className="min-h-screen app-bg text-slate-900">
@@ -131,7 +145,7 @@ function Shell({ children }: { children: ReactNode }) {
           </div>
         </div>
 
-        <nav className="mt-8 flex flex-1 flex-col gap-1">
+        <nav className="mt-8 flex flex-1 flex-col gap-1 overflow-y-auto">
           {items.map((n) => {
             const active = path === n.href;
             const badge = n.href === "/notifications" ? unread : n.href === "/teacher" ? pending : 0;
@@ -182,7 +196,17 @@ function Shell({ children }: { children: ReactNode }) {
             ☰
           </button>
           <div className="ml-auto flex items-center gap-3">
-            <div className="flex items-center gap-1 rounded-full bg-slate-100 p-1" role="group" aria-label="Demo view">
+            <select
+              value={role}
+              onChange={(e) => switchRole(e.target.value)}
+              aria-label="Demo view"
+              className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-brand-700 outline-none sm:hidden"
+            >
+              {ROLES.map((r) => (
+                <option key={r}>{r}</option>
+              ))}
+            </select>
+            <div className="hidden items-center gap-1 rounded-full bg-slate-100 p-1 sm:flex" role="group" aria-label="Demo view">
               {ROLES.map((r) => (
                 <button
                   key={r}
@@ -270,9 +294,11 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
   return (
     <SchoolProvider>
       <DemoProvider>
-        <PortalProvider>
-          <Shell>{children}</Shell>
-        </PortalProvider>
+        <ExtraProvider>
+          <PortalProvider>
+            <Shell>{children}</Shell>
+          </PortalProvider>
+        </ExtraProvider>
       </DemoProvider>
     </SchoolProvider>
   );
