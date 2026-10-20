@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { PortalProvider, usePortal } from "@/lib/store";
 import { SchoolProvider, useSchool, type FeatureKey } from "@/lib/school";
-import { DemoProvider, useDemo } from "@/lib/demo";
+import { DemoProvider, TEACHER, useDemo } from "@/lib/demo";
 import { ExtraProvider } from "@/lib/extra";
+import { ChatProvider, PARENT_NAME, useChat } from "@/lib/chat";
 import { student } from "@/lib/data";
 
 type NavItem = { href: string; label: string; icon: string; feature: FeatureKey | null };
@@ -22,10 +23,13 @@ const studentNav: NavItem[] = [
   { href: "/grades", label: "Grades", icon: "📊", feature: "grades" },
   { href: "/hallpass", label: "Hall Pass", icon: "🚪", feature: "hallpass" },
   { href: "/checkin", label: "Check-in", icon: "📱", feature: "checkin" },
+  { href: "/lunch", label: "Lunch Menu", icon: "🍎", feature: "lunch" },
+  { href: "/clubs", label: "Clubs", icon: "🎭", feature: "clubs" },
 ];
 
 const parentNav: NavItem[] = [
   { href: "/parent", label: "Dashboard", icon: "🏠", feature: "parents" },
+  { href: "/parent/messages", label: "Messages", icon: "💬", feature: "messages" },
   { href: "/parent/absence", label: "Report absence", icon: "📝", feature: "parents" },
 ];
 
@@ -33,11 +37,13 @@ const teacherNav: NavItem[] = [
   { href: "/teacher", label: "Dashboard", icon: "🏠", feature: null },
   { href: "/teacher/attendance", label: "Attendance", icon: "✅", feature: null },
   { href: "/teacher/gradebook", label: "Gradebook", icon: "📒", feature: null },
+  { href: "/teacher/messages", label: "Messages", icon: "💬", feature: "messages" },
 ];
 
 const adminNav: NavItem[] = [
   { href: "/admin/overview", label: "Overview", icon: "📈", feature: null },
   { href: "/admin/users", label: "Users", icon: "👥", feature: null },
+  { href: "/admin/alerts", label: "Alerts", icon: "🚨", feature: "alerts" },
   { href: "/admin/checkin", label: "Check-in Kiosk", icon: "🖥️", feature: "checkin" },
   { href: "/admin", label: "Settings", icon: "⚙️", feature: null },
 ];
@@ -53,6 +59,45 @@ function areaOf(path: string) {
   if (path.startsWith("/teacher")) return "Teacher";
   if (path.startsWith("/parent")) return "Parent";
   return "Student";
+}
+
+// A soft glow that follows the mouse (computers only).
+function CursorAura() {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (window.matchMedia("(pointer: coarse)").matches) return;
+    let raf = 0;
+    let x = 0;
+    let y = 0;
+    const move = (e: PointerEvent) => {
+      x = e.clientX;
+      y = e.clientY;
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        if (ref.current) ref.current.style.transform = `translate3d(${x - 180}px, ${y - 180}px, 0)`;
+      });
+    };
+    window.addEventListener("pointermove", move, { passive: true });
+    return () => {
+      window.removeEventListener("pointermove", move);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, []);
+  return (
+    <div
+      ref={ref}
+      aria-hidden
+      className="pointer-events-none fixed left-0 top-0 z-10 h-[360px] w-[360px] rounded-full"
+      style={{
+        transform: "translate3d(-600px, -600px, 0)",
+        willChange: "transform",
+        mixBlendMode: "multiply",
+        opacity: 0.4,
+        background: "radial-gradient(circle, color-mix(in srgb, var(--brand-300) 70%, transparent), transparent 65%)",
+      }}
+    />
+  );
 }
 
 function FeatureOff({ name, home }: { name: string; home?: string }) {
@@ -76,9 +121,11 @@ function Shell({ children }: { children: ReactNode }) {
   const { unread } = usePortal();
   const { school } = useSchool();
   const { passes, announcements } = useDemo();
+  const chat = useChat();
   const [role, setRole] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [seen, setSeen] = useState<number[]>([]);
+  const [going, setGoing] = useState<string | null>(null);
   const path = pathname ?? "";
   const area = areaOf(path);
 
@@ -96,6 +143,27 @@ function Shell({ children }: { children: ReactNode }) {
     if (role && area !== role) router.replace(HOME[role] ?? "/dashboard");
   }, [role, area, router]);
 
+  // The page arrived, so stop the loading bar.
+  useEffect(() => {
+    setGoing(null);
+  }, [path]);
+
+  useEffect(() => {
+    if (!going) return;
+    const t = setTimeout(() => setGoing(null), 12000);
+    return () => clearTimeout(t);
+  }, [going]);
+
+  // Any link click shows instant feedback, even if the page takes a moment to load.
+  function onNavClick(e: MouseEvent<HTMLDivElement>) {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    const a = (e.target as HTMLElement).closest("a");
+    const href = a?.getAttribute("href");
+    if (!a || !href || !href.startsWith("/") || a.target === "_blank") return;
+    const target = href.split("?")[0].split("#")[0];
+    if (target !== path) setGoing(target);
+  }
+
   function signOut() {
     sessionStorage.removeItem(ROLE_KEY);
     router.push("/");
@@ -105,29 +173,51 @@ function Shell({ children }: { children: ReactNode }) {
   function switchRole(r: string) {
     sessionStorage.setItem(ROLE_KEY, r);
     setRole(r);
-    router.push(HOME[r]);
+    setGoing(HOME[r]);
   }
 
   if (!role) return <div className="min-h-screen bg-slate-50" />;
 
-  const who = role === "Student" ? student.name : role === "Parent" ? "Dana Rivera" : role === "Teacher" ? "Mr. Okafor" : "Demo Admin";
+  const who = role === "Student" ? student.name : role === "Parent" ? PARENT_NAME : role === "Teacher" ? TEACHER.name : "Demo Admin";
   const initials = who.split(" ").map((w) => w[0]).join("");
+  const here = going ?? path;
 
   const items = (NAVS[role] ?? studentNav).filter((n) => !n.feature || school.features[n.feature]);
   const current = ALL_NAV.find((n) => n.href === path);
   const gated = current?.feature ?? null;
   const featureOff = gated !== null && !school.features[gated];
   const showBell = role === "Student" && school.features.notifications;
-  const pending = school.features.hallpass ? passes.filter((p) => p.status === "pending").length : 0;
+  const waiting = school.features.hallpass ? passes.filter((p) => p.status === "pending").length : 0;
+  const msgViewer = role === "Parent" ? PARENT_NAME : TEACHER.name;
+  const badgeFor = (href: string) =>
+    href === "/notifications" ? unread : href === "/teacher" ? waiting : href.endsWith("/messages") ? chat.unread(msgViewer) : 0;
+
   const latest = announcements[0];
   const banner =
     (role === "Student" || role === "Parent") && school.features.announcements && latest && !seen.includes(latest.id) ? latest : undefined;
+  const alertNow = school.features.alerts && role !== "Admin" ? chat.alerts.find((a) => a.active && !a.acks.includes(role)) : undefined;
 
   const content =
     area !== role ? null : featureOff ? <FeatureOff name={current?.label ?? "This page"} home={role === "Parent" ? undefined : HOME[role]} /> : children;
 
   return (
-    <div className="min-h-screen app-bg text-slate-900">
+    <div className="min-h-screen app-bg text-slate-900" onClickCapture={onNavClick}>
+      <CursorAura />
+
+      <AnimatePresence>
+        {going && going !== path && (
+          <motion.div
+            key="bar"
+            initial={{ scaleX: 0, opacity: 1 }}
+            animate={{ scaleX: 0.85 }}
+            exit={{ scaleX: 1, opacity: 0, transition: { duration: 0.25 } }}
+            transition={{ duration: 6, ease: [0.1, 0.8, 0.2, 1] }}
+            style={{ transformOrigin: "left" }}
+            className="fixed inset-x-0 top-0 z-[60] h-0.5 bg-gradient-to-r from-brand-400 to-accent-500"
+          />
+        )}
+      </AnimatePresence>
+
       {open && <div className="fixed inset-0 z-30 bg-black/30 md:hidden" onClick={() => setOpen(false)} />}
 
       <aside
@@ -147,8 +237,8 @@ function Shell({ children }: { children: ReactNode }) {
 
         <nav className="mt-8 flex flex-1 flex-col gap-1 overflow-y-auto">
           {items.map((n) => {
-            const active = path === n.href;
-            const badge = n.href === "/notifications" ? unread : n.href === "/teacher" ? pending : 0;
+            const active = here === n.href;
+            const badge = badgeFor(n.href);
             return (
               <Link
                 key={n.href}
@@ -191,64 +281,97 @@ function Shell({ children }: { children: ReactNode }) {
       </aside>
 
       <div className="md:pl-64">
-        <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-slate-200 bg-white/80 px-4 py-3 backdrop-blur md:px-8">
-          <button className="rounded-lg p-2 hover:bg-slate-100 md:hidden" onClick={() => setOpen(true)} aria-label="Open menu">
-            ☰
-          </button>
-          <div className="ml-auto flex items-center gap-3">
-            <select
-              value={role}
-              onChange={(e) => switchRole(e.target.value)}
-              aria-label="Demo view"
-              className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-brand-700 outline-none sm:hidden"
-            >
-              {ROLES.map((r) => (
-                <option key={r}>{r}</option>
-              ))}
-            </select>
-            <div className="hidden items-center gap-1 rounded-full bg-slate-100 p-1 sm:flex" role="group" aria-label="Demo view">
-              {ROLES.map((r) => (
-                <button
-                  key={r}
-                  onClick={() => switchRole(r)}
-                  aria-pressed={role === r}
-                  className={`relative rounded-full px-3 py-1 text-xs font-semibold ${
-                    role === r ? "text-brand-700" : "text-slate-500 hover:text-slate-800"
-                  }`}
-                >
-                  {role === r && (
-                    <motion.span
-                      layoutId="role-switch"
-                      className="absolute inset-0 rounded-full bg-white shadow-sm"
-                      transition={{ type: "spring", stiffness: 400, damping: 32 }}
-                    />
-                  )}
-                  <span className="relative">{r}</span>
-                </button>
-              ))}
-            </div>
-
-            {showBell && (
-              <Link href="/notifications" className="relative rounded-full p-2 hover:bg-slate-100" aria-label="Notifications">
-                🔔
-                {unread > 0 && (
-                  <motion.span
-                    key={unread}
-                    initial={{ scale: 0.5 }}
-                    animate={{ scale: 1 }}
-                    className="absolute -right-0.5 -top-0.5 rounded-full bg-rose-500 px-1.5 text-[10px] font-bold text-white"
+        <div className="sticky top-0 z-20">
+          <header className="flex items-center gap-3 border-b border-slate-200 bg-white/80 px-4 py-3 backdrop-blur md:px-8">
+            <button className="rounded-lg p-2 hover:bg-slate-100 md:hidden" onClick={() => setOpen(true)} aria-label="Open menu">
+              ☰
+            </button>
+            <div className="ml-auto flex items-center gap-3">
+              <select
+                value={role}
+                onChange={(e) => switchRole(e.target.value)}
+                aria-label="Demo view"
+                className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-brand-700 outline-none sm:hidden"
+              >
+                {ROLES.map((r) => (
+                  <option key={r}>{r}</option>
+                ))}
+              </select>
+              <div className="hidden items-center gap-1 rounded-full bg-slate-100 p-1 sm:flex" role="group" aria-label="Demo view">
+                {ROLES.map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => switchRole(r)}
+                    aria-pressed={role === r}
+                    className={`relative rounded-full px-3 py-1 text-xs font-semibold ${
+                      role === r ? "text-brand-700" : "text-slate-500 hover:text-slate-800"
+                    }`}
                   >
-                    {unread}
-                  </motion.span>
-                )}
-              </Link>
-            )}
-            <div className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-600 text-sm font-bold text-white">{initials}</div>
-              <span className="hidden text-sm font-medium lg:block">{who}</span>
+                    {role === r && (
+                      <motion.span
+                        layoutId="role-switch"
+                        className="absolute inset-0 rounded-full bg-white shadow-sm"
+                        transition={{ type: "spring", stiffness: 400, damping: 32 }}
+                      />
+                    )}
+                    <span className="relative">{r}</span>
+                  </button>
+                ))}
+              </div>
+
+              {showBell && (
+                <Link href="/notifications" className="relative rounded-full p-2 hover:bg-slate-100" aria-label="Notifications">
+                  🔔
+                  {unread > 0 && (
+                    <motion.span
+                      key={unread}
+                      initial={{ scale: 0.5 }}
+                      animate={{ scale: 1 }}
+                      className="absolute -right-0.5 -top-0.5 rounded-full bg-rose-500 px-1.5 text-[10px] font-bold text-white"
+                    >
+                      {unread}
+                    </motion.span>
+                  )}
+                </Link>
+              )}
+              <div className="flex items-center gap-2">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-600 text-sm font-bold text-white">{initials}</div>
+                <span className="hidden text-sm font-medium lg:block">{who}</span>
+              </div>
             </div>
-          </div>
-        </header>
+          </header>
+
+          <AnimatePresence initial={false}>
+            {alertNow && (
+              <motion.div
+                key={alertNow.id}
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                className="overflow-hidden"
+                role="alert"
+              >
+                <div className={`flex flex-wrap items-center gap-3 px-4 py-3 text-white md:px-8 ${alertNow.level === "urgent" ? "bg-rose-600" : "bg-amber-500"}`}>
+                  <motion.span animate={{ scale: [1, 1.25, 1] }} transition={{ duration: 1.2, repeat: Infinity }} className="text-xl">
+                    🚨
+                  </motion.span>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold">{alertNow.title}</p>
+                    {alertNow.body && <p className="text-sm text-white/90">{alertNow.body}</p>}
+                  </div>
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => chat.ackAlert(alertNow.id, role)}
+                    className="rounded-lg bg-white px-4 py-1.5 text-sm font-semibold text-slate-900 shadow"
+                  >
+                    Got it
+                  </motion.button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
         <main className="p-4 md:p-8">
           <div className="mx-auto max-w-6xl">
@@ -295,9 +418,11 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
     <SchoolProvider>
       <DemoProvider>
         <ExtraProvider>
-          <PortalProvider>
-            <Shell>{children}</Shell>
-          </PortalProvider>
+          <ChatProvider>
+            <PortalProvider>
+              <Shell>{children}</Shell>
+            </PortalProvider>
+          </ChatProvider>
         </ExtraProvider>
       </DemoProvider>
     </SchoolProvider>

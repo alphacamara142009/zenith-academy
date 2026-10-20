@@ -1,7 +1,7 @@
 "use client";
 
 import { animate, motion, useMotionValue, useReducedMotion, useTransform } from "motion/react";
-import { useEffect, type MouseEvent, type ReactNode } from "react";
+import { useEffect, type CSSProperties, type MouseEvent, type ReactNode } from "react";
 
 export function CountUp({ to, decimals = 0, suffix = "" }: { to: number; decimals?: number; suffix?: string }) {
   const reduce = useReducedMotion();
@@ -34,6 +34,20 @@ export function Reveal({ children, delay = 0, className = "" }: { children: Reac
   );
 }
 
+// A thin glowing outline that follows the cursor.
+const EDGE = {
+  padding: 1.5,
+  background: "radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%), var(--brand-500), transparent 70%)",
+  WebkitMask: "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
+  WebkitMaskComposite: "xor",
+  mask: "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
+  maskComposite: "exclude",
+} as CSSProperties;
+
+const LIGHT = {
+  background: "radial-gradient(440px circle at var(--mx, 50%) var(--my, 50%), color-mix(in srgb, var(--brand-400) 16%, transparent), transparent 65%)",
+} as CSSProperties;
+
 export function Card({ children, className = "", lift = true }: { children: ReactNode; className?: string; lift?: boolean }) {
   function track(e: MouseEvent<HTMLDivElement>) {
     const r = e.currentTarget.getBoundingClientRect();
@@ -45,15 +59,10 @@ export function Card({ children, className = "", lift = true }: { children: Reac
       onMouseMove={track}
       whileHover={lift ? { y: -3 } : undefined}
       transition={{ type: "spring", stiffness: 400, damping: 28 }}
-      className={`group/card relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm transition-[box-shadow,border-color] duration-200 hover:border-brand-200 hover:shadow-md hover:shadow-brand-500/10 ${className}`}
+      className={`group/card relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm transition-[box-shadow,border-color] duration-200 hover:border-transparent hover:shadow-lg hover:shadow-brand-500/10 ${className}`}
     >
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover/card:opacity-100"
-        style={{
-          background: "radial-gradient(360px circle at var(--mx, 50%) var(--my, 50%), color-mix(in srgb, var(--brand-500) 8%, transparent), transparent 70%)",
-        }}
-      />
+      <div aria-hidden className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover/card:opacity-100" style={LIGHT} />
+      <div aria-hidden className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-300 group-hover/card:opacity-100" style={EDGE} />
       <div className="relative">{children}</div>
     </motion.div>
   );
@@ -74,6 +83,10 @@ const TITLE_ICONS: Record<string, string> = {
   "Report an absence": "📝",
   "Check-in": "📱",
   "Check-in Kiosk": "🖥️",
+  Messages: "💬",
+  "Lunch Menu": "🍎",
+  Clubs: "🎭",
+  Alerts: "🚨",
 };
 
 export function PageHeader({ title, subtitle, right }: { title: string; subtitle?: string; right?: ReactNode }) {

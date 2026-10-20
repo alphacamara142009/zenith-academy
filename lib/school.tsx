@@ -14,21 +14,23 @@ export const FEATURES = [
   { key: "announcements", label: "Announcements", desc: "School-wide messages shown to students and parents", icon: "📣" },
   { key: "checkin", label: "QR check-in", desc: "Late students scan the front-desk code to mark themselves in", icon: "📱" },
   { key: "parents", label: "Parent portal", desc: "Parents see grades, attendance, and can report absences", icon: "👪" },
+  { key: "messages", label: "Messaging", desc: "Parents and teachers message each other", icon: "💬" },
+  { key: "alerts", label: "Emergency alerts", desc: "Admins send urgent notices everyone must acknowledge", icon: "🚨" },
+  { key: "lunch", label: "Lunch menu", desc: "Weekly menu with allergen tags", icon: "🍎" },
+  { key: "clubs", label: "Clubs", desc: "Students browse and join clubs", icon: "🎭" },
 ] as const;
 
 export type FeatureKey = (typeof FEATURES)[number]["key"];
 
 export const COMING_SOON = [
-  { label: "Messaging", icon: "💬" },
-  { label: "Lunch menu", icon: "🍎" },
-  { label: "Clubs and events", icon: "🎭" },
-  { label: "Emergency alerts", icon: "🚨" },
   { label: "Permission slips", icon: "✍️" },
   { label: "Bus tracking", icon: "🚌" },
   { label: "Payments", icon: "💳" },
   { label: "Mobile apps", icon: "📲" },
   { label: "Advanced reports", icon: "📈" },
   { label: "Lesson plans", icon: "🗂️" },
+  { label: "Volunteer sign-ups", icon: "🙋" },
+  { label: "Student ID cards", icon: "🪪" },
 ];
 
 export const PRESETS = [

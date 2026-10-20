@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { motion } from "motion/react";
 import { Card, CountUp, ProgressRing, Reveal } from "@/components/ui";
-import { usePortal } from "@/lib/store";
+import { usePortal } from "@/lib/store"; import { KINDS, eventsOn } from "@/lib/calendar";
 import { useSchool } from "@/lib/school";
 import { TODAY, assignments, attendance, classes, daysUntil, dueLabel, events, fmtTime, iso, letter, quarters, student } from "@/lib/data";
 
@@ -36,7 +36,7 @@ export default function Dashboard() {
   const week = dayNames.map((name, i) => {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
-    return { name, d, key: iso(d), evs: events.filter((e) => e.date === iso(d)) };
+    return { name, d, key: iso(d), evs: eventsOn(iso(d)) };
   });
   const todayKey = iso(TODAY);
 
@@ -217,7 +217,7 @@ export default function Dashboard() {
                       <p
                         key={e.title}
                         className={`mt-2 rounded-lg px-2 py-1 text-[11px] font-medium ${
-                          e.kind === "off" ? "bg-amber-100 text-amber-800" : "bg-sky-100 text-sky-800"
+                          KINDS[e.kind].pill
                         }`}
                       >
                         {e.title}

@@ -5,11 +5,12 @@ import { useState } from "react";
 import { motion } from "motion/react";
 import { PageHeader } from "@/components/ui";
 import { TODAY, classes, fmtTime, iso } from "@/lib/data";
-import { eventsOn, isNoSchool } from "@/lib/calendar";
+import { KINDS, eventsOn, isNoSchool } from "@/lib/calendar";
 
 const START = 520; // 8:40 AM
 const END = 940; // 3:40 PM
 const PX = 1.15; // pixels per minute
+const NOW = 11 * 60 + 30; // demo clock: 11:30 AM
 const HOURS = [9, 10, 11, 12, 13, 14, 15];
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri"];
 
@@ -62,9 +63,9 @@ export default function Schedule() {
 
       <motion.div
         key={offset}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.2 }}
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25 }}
         className="overflow-x-auto rounded-2xl border border-slate-200/70 bg-white shadow-sm"
       >
         <div className="min-w-[760px]">
@@ -79,9 +80,7 @@ export default function Schedule() {
                   {day.evs.map((e) => (
                     <p
                       key={e.title}
-                      className={`mx-auto mt-1 w-fit max-w-full truncate rounded-md px-2 py-0.5 text-[10px] font-medium ${
-                        e.kind === "off" ? "bg-amber-100 text-amber-800" : "bg-sky-100 text-sky-800"
-                      }`}
+                      className={`mx-auto mt-1 w-fit max-w-full truncate rounded-md px-2 py-0.5 text-[10px] font-medium ${KINDS[e.kind].pill}`}
                     >
                       {e.title}
                     </p>
@@ -123,6 +122,7 @@ export default function Schedule() {
                   ) : (
                     classes.map((c, i) => {
                       const h = (c.end - c.start) * PX;
+                      const isNow = isToday && NOW >= c.start && NOW < c.end;
                       return (
                         <Link
                           key={c.id}
@@ -134,9 +134,9 @@ export default function Schedule() {
                           <motion.div
                             initial={{ opacity: 0, scale: 0.96 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: di * 0.04 + i * 0.02, duration: 0.25 }}
+                            transition={{ delay: di * 0.03 + i * 0.02, duration: 0.25 }}
                             whileHover={{ scale: 1.02 }}
-                            className={`h-full overflow-hidden rounded-lg border px-2 py-1 ${c.soft}`}
+                            className={`h-full overflow-hidden rounded-lg border px-2 py-1 ${c.soft} ${isNow ? "ring-2 ring-brand-500" : ""}`}
                           >
                             {h >= 40 && (
                               <>
@@ -151,6 +151,17 @@ export default function Schedule() {
                         </Link>
                       );
                     })
+                  )}
+
+                  {isToday && !day.off && NOW >= START && NOW <= END && (
+                    <div className="pointer-events-none absolute inset-x-0 z-10 flex items-center" style={{ top: (NOW - START) * PX }}>
+                      <motion.span
+                        animate={{ scale: [1, 1.5, 1] }}
+                        transition={{ duration: 1.6, repeat: Infinity }}
+                        className="-ml-1 h-2.5 w-2.5 rounded-full bg-rose-500"
+                      />
+                      <span className="h-px flex-1 bg-rose-500" />
+                    </div>
                   )}
                 </div>
               );

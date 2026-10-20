@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useAnimationControls } from "motion/react";
 import { Card, PageHeader, Reveal } from "@/components/ui";
 import { fmtTime } from "@/lib/data";
 import { ME } from "@/lib/demo";
@@ -11,12 +11,13 @@ export default function CheckIn() {
   const { checkins, checkIn } = useExtra();
   const [code, setCode] = useState("");
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
-  const [tries, setTries] = useState(0);
+  const shake = useAnimationControls();
   const mine = checkins.find((c) => c.student === ME);
 
   function submit(value: string) {
-    setResult(checkIn(ME, value.trim()));
-    setTries((t) => t + 1);
+    const r = checkIn(ME, value.trim());
+    setResult(r);
+    if (!r.ok) shake.start({ x: [0, -8, 8, -6, 6, 0], transition: { duration: 0.35 } });
   }
 
   return (
@@ -50,7 +51,7 @@ export default function CheckIn() {
               <h2 className="font-semibold">Enter the code from the front desk</h2>
               <p className="text-sm text-slate-500">The 6-digit code on the screen changes every 30 seconds. On the phone app you will just scan its QR code.</p>
 
-              <motion.div key={tries} animate={result && !result.ok ? { x: [0, -8, 8, -6, 6, 0] } : {}} transition={{ duration: 0.35 }}>
+              <motion.div animate={shake}>
                 <input
                   value={code}
                   onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
